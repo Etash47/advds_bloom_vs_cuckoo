@@ -1,4 +1,5 @@
 import math
+import time
 
 class BloomFilter:
 
@@ -20,13 +21,15 @@ class BloomFilter:
         self.n_inserted = 0
 
 
-    def insert(self, key):
+    def insert_with_time_elapsed(self, key):
+        start = time.time()
         for h in self.hash_fxns:
             hash_val = h(key)
             self.bit_vector[hash_val] = 1
         
         self.n_inserted += 1
-        return True
+        end = time.time()
+        return True, (end-start)
 
     def check_with_false_prob(self, key):
         for h in self.hash_fxns:
