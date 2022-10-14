@@ -41,6 +41,3 @@ class BloomFilter:
             ) ** self.k_hash_fxns
 
         return True, false_prob
-
-
-
