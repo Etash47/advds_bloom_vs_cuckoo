@@ -19,6 +19,8 @@ class BloomFilter:
         
         self.bit_vector = [0] * self.m_bit_v_size
         self.n_inserted = 0
+        
+        self.test_n_non_duplicate = []
 
 
     def insert_with_time_elapsed(self, key):
@@ -29,6 +31,12 @@ class BloomFilter:
         
         self.n_inserted += 1
         end = time.time()
+
+        # This part should not be timed (checking for duplicates for accurate false prob)
+        if key not in self.test_n_non_duplicate:
+            self.test_n_non_duplicate.append(key)
+        # Resume timing
+
         return True, (end-start)
 
     def check_with_false_prob(self, key):
@@ -39,7 +47,7 @@ class BloomFilter:
 
         false_prob = (1 - 
             math.exp(
-                    float(-self.k_hash_fxns * self.n_inserted) / float(self.m_bit_v_size)
+                    float(-self.k_hash_fxns * len(self.test_n_non_duplicate)) / float(self.m_bit_v_size)
                 )
             ) ** self.k_hash_fxns
 
