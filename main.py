@@ -31,8 +31,8 @@ def test_bloom_filter():
     in_set_probabilities = [bloomFilter.check_with_false_prob(i) for i in range(100)]
     print("\n-----\n-----\n-----\n")
 
-    for i, j in in_set_probabilities:
-        print(i, j)
+    for i, j, k in in_set_probabilities:
+        print(i, j, k)
 
     plt.plot(list(range(100)), [1 - x[1] if x[1] > 0 else 0 for x in in_set_probabilities])
     plt.title("Probability of x in set")
