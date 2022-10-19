@@ -23,6 +23,10 @@ class BloomFilter:
         
         self.test_n_non_duplicate = []
 
+    def remove_all_insertions(self):
+        self.bit_vector = [0] * self.m_bit_v_size
+        self.n_inserted = 0
+        self.test_n_non_duplicate = []
 
     def insert_with_time_elapsed(self, key):
         start = time.time()

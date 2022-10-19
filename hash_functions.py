@@ -13,6 +13,6 @@ def universal_hash_functions(a_vals, b_vals, p_vals, m):
         p = p_vals[i]
         lambda_f = lambda x: (((a*x) + b) % p) % m
         hash_functions.append(lambda_f)
-        print(lambda_f)
+        #print(lambda_f)
 
     return hash_functions
