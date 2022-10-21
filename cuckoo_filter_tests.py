@@ -47,26 +47,11 @@ def time_insertion():
     plt.plot(n_vals, time_lst)
     plt.title("Insertion speed for Cuckoo filter")
     plt.show()
-
-def generate_false_keys(n, insert_lst):
-    false_key_lst = []
-    for _ in range(n):
-        k = getrandbits(64)
-        while k in insert_lst:
-            k = getrandbits(64)
-        false_key_lst.append(k)
-    return false_key_lst
     
 def main():
     f = 9
-    # alpha, epsilon = test_cuckoo_filter(f)
-    # print("For f = {}:".format(f))
-    # print("alpha: {}".format(alpha))
-    # print("epsilon: {}".format(epsilon))
-    
     time_lst = time_insertion()
-    epsilon_lst = test_false_positives(9)
-    #print(epsilon_lst[:100])
+    epsilon_lst = test_false_positives(f)
     
 if __name__ == "__main__":
     main()
