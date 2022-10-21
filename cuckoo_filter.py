@@ -1,4 +1,7 @@
 import numpy as np
+import time
+from tracemalloc import start
+from random import randint, choice, getrandbits
 
 class Bucket:
     
@@ -40,125 +43,131 @@ class CuckooFilter:
     # max_kicks: The maximum number of times we will allow "kicking" an entry from a bucket to its alternate bucket
     
     # Other attributes:
-    # bucket_array: the data structure itself - array of buckets where each bucket contains a list of fingerprints
+    # filter: The data structure itself - array of buckets where each bucket contains a list of fingerprints
+    # num_occupied_buckets: The number of non-empty buckets in the filter - used to calculate load factor
     
-    def __init__(self, array_size, bucket_size, h_fcn, f_bit_size, max_kicks):
+    def __init__(self, array_size, bucket_size, f_bit_size, max_kicks):
         self.array_size = array_size
-        self.h_fcn = h_fcn
+        # self.h_fcn = h_fcn
         self.f_bit_size = f_bit_size
         self.max_kicks = max_kicks
-        self.bucket_array = []
+        self.filter = []
+        self.num_occupied_buckets = 0
+        self.num_entries = 0
+        
         # Initialize each index to store an empty Bucket
         for _ in range(self.array_size):
-            self.bucket_array.append(Bucket(bucket_size))
+            self.filter.append(Bucket(bucket_size))
+            
+    def multiplicative_hash(self, x):
+        p = 32779
+        a = randint(0,p)
+        b = randint(0,p+1)
+        m = self.array_size
+        return (((a*x) + b) % p) % m
+    
+    def fingerprint(self, x):
+        '''
+        Computes the fingerprint of a given string using polynomial hashing.
+        Params:
+        x - the key to be hashed
+        f_size - the number of desired bits in the fingerprint
+        '''
+        p = 53
+        a = 47
+        b = 13
+        m = 2**self.f_bit_size
+        return (((a*x) + b) % p) % m
         
     def insert(self, x):
-        f = fingerprint(x, self.f_bit_size)
-        i1 = self.h_fcn(x)
-        i2 = i1 ^ self.h_fcn(x) # Partial Cuckoo Hashing
-        if not self.bucket_array[i1].full:
-            self.bucket_array[i1].insert(f)
-            return True
-        elif not self.bucket_array[i2].full:
-            self.bucket_array[i2].insert(f)
-            return True
+        start = time.time()
+        f = self.fingerprint(x)
+        i1 = self.multiplicative_hash(x)
+        i2 = i1 ^ self.multiplicative_hash(f) # Partial Key Cuckoo Hashing
+
+        if not self.filter[i1].full:
+            self.filter[i1].insert(f)
+            self.num_entries += 1
+            return True, time.time()-start
+        elif not self.filter[i2].full:                
+            self.filter[i2].insert(f)
+            self.num_entries += 1
+            return True, time.time()-start
 
         # Must relocate existing items
-        i = np.random.choice(np.array((i1, i2)))
-        for n in range(self.max_kicks):
+        i = choice(np.array((i1, i2)))
+        for _ in range(self.max_kicks):
             # Randomly select bucket entry to kick out
-            idx = np.random.choice(len(self.bucket_array[i].fingerprint_lst))
-            entry = self.bucket_array[i].fingerprint_lst[idx]
-            self.bucket_array[i].fingerprint_lst[idx] = f
+            idx = np.random.choice(len(self.filter[i].fingerprint_lst))
+            entry = self.filter[i].fingerprint_lst[idx]
+            self.filter[i].fingerprint_lst[idx] = f
             # Compute alternate bucket index for kicked out entry
-            i = i ^ self.h_fcn(entry)
+            i = i ^ self.multiplicative_hash(entry)
             # Attempt to insert kicked out entry into its alternate bucket
-            if not self.bucket_array[i].full:
-                self.bucket_array[i].insert(f)
-                return True
+            if not self.filter[i].full:
+                self.filter[i].insert(f)
+                self.num_entries += 1
+                return True, time.time()-start
         # reached max number of kicks, return failure  
-        return False
+        return False, time.time()-start
 
     def lookup(self, x):
-        f = fingerprint(x, self.f_bit_size)
-        i1 = self.h_fcn(x)
-        i2 = i1 ^ self.h_fcn(str(f)) # May want to change how we hash the fingerprint
-        if f in self.bucket_array[i1].fingerprint_lst or f in self.bucket_array[i2].fingerprint_lst:
+        f = self.fingerprint(x)
+        i1 = self.multiplicative_hash(x)
+        i2 = i1 ^ self.multiplicative_hash(f) # May want to change how we hash the fingerprint
+        if f in self.filter[i1].fingerprint_lst or f in self.filter[i2].fingerprint_lst:
             return True
         return False
         
     def delete(self, x):
-        f = fingerprint(x, self.f_bit_size)
-        i1 = self.h_fcn(x)
-        i2 = i1 ^ self.h_fcn(str(f)) # May want to change how we hash the fingerprint
-        if f in self.bucket_array[i1].fingerprint_lst or f in self.bucket_array[i2].fingerprint_lst:
-            self.bucket_array[i1].remove(f)
+        f = self.fingerprint(x)
+        i1 = self.multiplicative_hash(x)
+        i2 = i1 ^ self.multiplicative_hash(f) # May want to change how we hash the fingerprint
+        if f in self.filter[i1].fingerprint_lst:
+            self.filter[i1].remove(f)
+            self.num_entries -= 1
+            return True
+
+        elif f in self.filter[i2].fingerprint_lst:
+            self.filter[i2].remove(f)
+            self.num_entries -= 1
             return True
         return False
     
+    def get_load_factor(self):
+        # print("occupancy: {}".format(self.num_entries))
+        # print("size: {}".format(4 * self.array_size))
+        return self.num_entries / (len(self.filter[0].fingerprint_lst) * self.array_size)
+    
     # Method to display the fingerprints stored in each bucket in the filter
     def print_filter(self):
-        for i in range(len(self.bucket_array)):
-            if len(self.bucket_array[i].fingerprint_lst):
+        for i in range(len(self.filter)):
+            if len(self.filter[i].fingerprint_lst):
                 print('-----------------------------------')
                 print('at index: {}, we have fingerprints:'.format(i))
-            for j in range(len(self.bucket_array[i].fingerprint_lst)):
-                print(bin(self.bucket_array[i].fingerprint_lst[j])[2:])
-    
-def fingerprint(s, f_bit_size):
-    '''
-    Computes the fingerprint of a given string using polynomial hashing.
-    Params:
-    s - the string to be hashed
-    f_size - the number of desired bits in the fingerprint
-    '''
-    f_print = 0
-    p = 31
-    n = len(s) # Number of terms in the polynomial
-    m = 2**f_bit_size # Size of the integer for modulo operation
-    for i in range(n):
-        f_print += (ord(s[i]) * p**i) % m
-    return f_print % m
+            for j in range(len(self.filter[i].fingerprint_lst)):
+                print(bin(self.filter[i].fingerprint_lst[j])[2:])
 
 
 # --------Functions for testing the Cuckoo Filter----------
 
-def polynomial_hash(s):
-    m = 100 # Would like to not have to hard code this value
-    h_val = 0
-    p = 31
-    n = len(s)
-    for i in range(n):
-        h_val += (ord(s[i]) * p**i) % m
-    return h_val % m
-
-# Simple function to generate n random strings of length k
-def generate_insertion_list(n,k):
+def generate_64_bit_keys(m):
     l = []
-    for i in range(n):
-        s = ''
-        for j in range(k):
-            s += chr(np.random.choice(range(97,123)))
-        l.append(s)
-    return l  
+    for _ in range(m):
+        l.append(getrandbits(64))
+    return l
         
 def main():
-    cf = CuckooFilter(array_size=100, bucket_size=4, h_fcn=polynomial_hash, f_bit_size=4, max_kicks=10)
-    N = 100
-    f_print_size = 4
-    l = generate_insertion_list(N, 10)
-    for i in range(N):
-        if not cf.insert(l[i]):
-            print('returned false for key: {}'.format(l[i]))
-            
-    # Code for testing insertion and deletion
-    # cf.print_filter()
-    # test_elt = l[0]
-    # print('test_elt: {}'.format(test_elt))
-    # print('hash of test_elt: {}'.format(polynomial_hash(test_elt)))
-    # print('fingerprint of test_elt: {}'.format(fingerprint(test_elt, f_print_size)))
-    # cf.delete(test_elt)
-    # cf.print_filter()
+    cf = CuckooFilter(array_size=2**15, bucket_size=4, f_bit_size=4, max_kicks=10)
+    insertion_lst = []
+    insert_success = True
+    start = time.time()
+    while insert_success:
+        key = getrandbits(64)
+        insertion_lst.append(key)
+        insert_success = cf.insert(key)
+    end = time.time()
+    print(end-start)
 
 if __name__=='__main__':
     main()
