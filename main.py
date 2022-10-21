@@ -8,7 +8,7 @@ import string
 import hashlib
 
 letters = string.ascii_lowercase
-inserting_num = 2**17
+inserting_num = 2**11
 num_random_checks = 500
 
 # def test_bloom_filter():
@@ -64,7 +64,8 @@ def analyse_bloom_filter():
     # We let m (bit vector size) = 10000
 
     #m = 2885
-    m = 756387
+    #m = 18996
+    m = 12000
 
     # hash_fxns = hash_functions.universal_hash_functions(a_vals, b_vals, p, m)
     hash_fxns = hash_functions.polynomial_hash_functions(p_vals, q_vals, m)
