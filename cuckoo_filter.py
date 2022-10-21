@@ -147,15 +147,6 @@ class CuckooFilter:
                 print('at index: {}, we have fingerprints:'.format(i))
             for j in range(len(self.filter[i].fingerprint_lst)):
                 print(bin(self.filter[i].fingerprint_lst[j])[2:])
-
-
-# --------Functions for testing the Cuckoo Filter----------
-
-def generate_64_bit_keys(m):
-    l = []
-    for _ in range(m):
-        l.append(getrandbits(64))
-    return l
         
 def main():
     cf = CuckooFilter(array_size=2**15, bucket_size=4, f_bit_size=4, max_kicks=10)

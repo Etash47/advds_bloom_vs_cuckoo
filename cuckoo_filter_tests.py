@@ -1,29 +1,36 @@
 import cuckoo_filter
+import math
 from random import getrandbits
 import matplotlib.pyplot as plt
 
-def test_cuckoo_filter(f_size):
-    M = 512
+def test_false_positives(f_size):
+    M = 2**10
+    n = math.ceil(0.95*4*M)
+    print("n: " + str(n))
+    n_vals = [x for x in range(1,n+1)]
     
     cf = cuckoo_filter.CuckooFilter(array_size=M, bucket_size=4, f_bit_size=f_size, max_kicks=500)
+    # List of false keys to use for determing false positve rate
+    false_key_lst = [getrandbits(64) for x in range(n)]
+    epsilon_lst = []
     
-    insertion_lst = []
-    insert_success = True
-    while insert_success:
+    for _ in range(n):
         key = getrandbits(64)
-        insertion_lst.append(key)
-        insert_success = cf.insert(key)
-    
-    alpha = cf.get_load_factor()
-    
-    false_key_lst = generate_false_keys(512, insertion_lst)
-    num_false_pos = 0
-    for k in false_key_lst:
-        if cf.lookup(k):
-            num_false_pos += 1
-    epsilon = num_false_pos / len(false_key_lst)
-    
-    return alpha, epsilon
+        while key in false_key_lst:
+            key = getrandbits(64)
+        cf.insert(key)
+        num_false_pos = 0
+        for i in range(n):
+            if cf.lookup(false_key_lst[i]):
+                num_false_pos += 1
+        epsilon = num_false_pos / n
+        epsilon_lst.append(epsilon)
+        
+    plt.plot(n_vals, epsilon_lst)
+    plt.title("False Positive Rate for Cuckoo Filter with f = {}".format(f_size))
+    plt.show()
+                
+    return epsilon_lst    
 
 def time_insertion():
     # Create a (2,4)-cuckoo filter with array size of 2^10 and fingerprints of 4 bits
@@ -58,7 +65,8 @@ def main():
     # print("epsilon: {}".format(epsilon))
     
     time_lst = time_insertion()
-    print(time_lst[-50:-1])
+    epsilon_lst = test_false_positives(9)
+    #print(epsilon_lst[:100])
     
 if __name__ == "__main__":
     main()
