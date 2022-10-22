@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 
 def test_false_positives(f_size):
     M = 2**10
-    n = math.ceil(0.95*4*M)
-    print("n: " + str(n))
-    n_vals = [x for x in range(1,n+1)]
     
     cf = cuckoo_filter.CuckooFilter(array_size=M, bucket_size=4, f_bit_size=f_size, max_kicks=500)
+    
+    n = math.ceil(0.95*len(cf.filter[0].capacity)*M) # Gives a load factor of approximately 0.95
+    n_vals = [x for x in range(1,n+1)]
     # List of false keys to use for determing false positve rate
     false_key_lst = [getrandbits(64) for x in range(n)]
     epsilon_lst = []
@@ -34,8 +34,9 @@ def test_false_positives(f_size):
 
 def time_insertion():
     # Create a (2,4)-cuckoo filter with array size of 2^10 and fingerprints of 4 bits
+    M = 2**10
+    cf = cuckoo_filter.CuckooFilter(array_size=M, bucket_size=4, f_bit_size=4, max_kicks=500)
     n = 2**11
-    cf = cuckoo_filter.CuckooFilter(array_size=2**10, bucket_size=4, f_bit_size=4, max_kicks=500)
     time_lst = []
     for _ in range(n):
         key = getrandbits(64)

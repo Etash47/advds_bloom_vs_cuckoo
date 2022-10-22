@@ -1,7 +1,7 @@
 import numpy as np
 import time
 from tracemalloc import start
-from random import randint, choice, getrandbits
+from random import randint, choice
 
 class Bucket:
     
@@ -83,7 +83,7 @@ class CuckooFilter:
         start = time.time()
         f = self.fingerprint(x)
         i1 = self.multiplicative_hash(x)
-        i2 = i1 ^ self.multiplicative_hash(f) # Partial Key Cuckoo Hashing
+        i2 = i1 ^ self.multiplicative_hash(f) # Partial-key Cuckoo Hashing
 
         if not self.filter[i1].full:
             self.filter[i1].insert(f)
@@ -114,7 +114,7 @@ class CuckooFilter:
     def lookup(self, x):
         f = self.fingerprint(x)
         i1 = self.multiplicative_hash(x)
-        i2 = i1 ^ self.multiplicative_hash(f) # May want to change how we hash the fingerprint
+        i2 = i1 ^ self.multiplicative_hash(f)
         if f in self.filter[i1].fingerprint_lst or f in self.filter[i2].fingerprint_lst:
             return True
         return False
@@ -122,7 +122,7 @@ class CuckooFilter:
     def delete(self, x):
         f = self.fingerprint(x)
         i1 = self.multiplicative_hash(x)
-        i2 = i1 ^ self.multiplicative_hash(f) # May want to change how we hash the fingerprint
+        i2 = i1 ^ self.multiplicative_hash(f)
         if f in self.filter[i1].fingerprint_lst:
             self.filter[i1].remove(f)
             self.num_entries -= 1
@@ -135,30 +135,14 @@ class CuckooFilter:
         return False
     
     def get_load_factor(self):
-        # print("occupancy: {}".format(self.num_entries))
-        # print("size: {}".format(4 * self.array_size))
-        return self.num_entries / (len(self.filter[0].fingerprint_lst) * self.array_size)
+        return self.num_entries / (len(self.filter[0].capacity) * self.array_size)
     
     # Method to display the fingerprints stored in each bucket in the filter
     def print_filter(self):
-        for i in range(len(self.filter)):
+        for i in range(self.array_size):
             if len(self.filter[i].fingerprint_lst):
                 print('-----------------------------------')
                 print('at index: {}, we have fingerprints:'.format(i))
             for j in range(len(self.filter[i].fingerprint_lst)):
                 print(bin(self.filter[i].fingerprint_lst[j])[2:])
-        
-def main():
-    cf = CuckooFilter(array_size=2**15, bucket_size=4, f_bit_size=4, max_kicks=10)
-    insertion_lst = []
-    insert_success = True
-    start = time.time()
-    while insert_success:
-        key = getrandbits(64)
-        insertion_lst.append(key)
-        insert_success = cf.insert(key)
-    end = time.time()
-    print(end-start)
-
-if __name__=='__main__':
-    main()
+                
