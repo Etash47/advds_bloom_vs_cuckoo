@@ -17,3 +17,14 @@ Adjust `inserting_num = 3800 #2**11` `num_random_checks = 500` for prebuilt goal
 `goal_2_polynomial_hash` tests empirical rate of polynomial hashing on bloomFilter.
 `goal_3_polynomial_hash` tests insertion speed on bloomFilter.
 
+## Testing the Cuckoo Filter
+- Implementation is located in `cuckoo_filter.py`
+- Test functions are in `test_cuckoo_filter.py`
+
+To view the empirical analysis of ONLY cuckoo filters, run interpreter on `test_cuckoo_filter.py`.
+
+To adjust the fingerprint size when testing the false positive rates, assign `f` to be your desired value in the `main()` function (recommended range of `f` is 4-20 bits). 
+
+Within both tests:
+- to adjust the size of the cuckoo filter, set `M` to desired value (must be a power of 2). 
+- to adjust the number of elements inserted in the table, set `n` to desired value.
